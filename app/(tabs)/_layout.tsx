@@ -1,45 +1,63 @@
-import { Tabs } from 'expo-router';
-import React from 'react';
-import { Platform } from 'react-native';
+import SimpleLineIcons from "@expo/vector-icons/SimpleLineIcons";
+import { Tabs } from "expo-router";
+import { Image, StyleSheet } from "react-native";
+import IconLoader from "../../components/iconLoader";
 
-import { HapticTab } from '@/components/HapticTab';
-import { IconSymbol } from '@/components/ui/IconSymbol';
-import TabBarBackground from '@/components/ui/TabBarBackground';
-import { Colors } from '@/constants/Colors';
-import { useColorScheme } from '@/hooks/useColorScheme';
-
-export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
+export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        headerShown: false,
-        tabBarButton: HapticTab,
-        tabBarBackground: TabBarBackground,
-        tabBarStyle: Platform.select({
-          ios: {
-            // Use a transparent background on iOS to show the blur effect
-            position: 'absolute',
-          },
-          default: {},
-        }),
-      }}>
+        tabBarStyle: {
+          position: "absolute",
+          width: "auto",
+          marginHorizontal: 20,
+          borderRadius: 9999,
+          justifyContent: "center",
+          alignContent: "center",
+          alignItems: "center",
+          maxHeight: 65,
+          marginBottom: 65,
+        },
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          title: "Home",
+          tabBarIcon: () => (
+            <Image
+              source={require("../../assets/images/emotion-logo.png")}
+              style={styles.imageIcon}
+            />
+          ),
+          headerShown: false,
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="journal"
         options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          title: "journal",
+          tabBarIcon: () => (
+            <SimpleLineIcons name="notebook" size={24} color="teal" />
+          ),
+          headerShown: false,
+        }}
+      />
+      <Tabs.Screen
+        name="read"
+        options={{
+          title: "read",
+          tabBarIcon: () => <IconLoader name="reading" />,
+          headerShown: false,
         }}
       />
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  imageIcon: {
+    width: 35,
+    height: 24,
+  },
+});

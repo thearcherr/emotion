@@ -1,75 +1,287 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import Entypo from "@expo/vector-icons/Entypo";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import Constants from "expo-constants";
+import { useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { useEffect, useState } from "react";
+import {
+  ImageBackground,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import { AnimatedCircularProgress } from "react-native-circular-progress";
+import "react-native-gesture-handler";
+import "react-native-reanimated";
+import { SafeAreaView } from "react-native-safe-area-context";
+import Task, { TaskInterface } from "../../components/Task";
+import useMood from "../../context/useMood";
+import { getAffirmationFromProgress } from "../../utils/functions";
+import { deleteTasks, getTasks, hasMoodedToday } from "../../utils/storage";
 
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+const key = Constants.expoConfig?.extra?.GEMINI_API_KEY;
 
-export default function HomeScreen() {
+export default function Index() {
+  const tasks = useMood((state: any) => state.tasks);
+  const setTasks = useMood((state: any) => state.setTasks);
+  const progress = useMood((state: any) => state.tasksProgress);
+  const setProgress = useMood((state: any) => state.setTasksProgress);
+
+  const [data, setData] = useState<null | any[]>(tasks);
+
+  const [mooded, setMooded] = useState<boolean | null>(null);
+
+  const router = useRouter();
+
+  function handleTherapyButton() {
+    router.push("/screens/chat");
+  }
+
+  useEffect(() => {
+    async function initStorage() {
+      const alreadyMooded = await hasMoodedToday(); // renamed function
+      setMooded(alreadyMooded);
+
+      const storedTasks = await getTasks();
+      if (storedTasks) {
+        setTasks(storedTasks);
+      }
+    }
+
+    initStorage();
+  }, []);
+
+  useEffect(() => {
+    if (typeof mooded === "boolean" && !mooded) {
+      router.replace("/screens/indexMood");
+    }
+  }, [mooded]);
+
+  if (typeof mooded === "boolean" && !mooded) {
+    return null; // or loading spinner
+  }
+
+  async function handleTaskDone(title: string): Promise<void> {
+    const remainingTasks = tasks.filter(
+      (task: TaskInterface) => task.title !== title
+    );
+
+    setTasks(remainingTasks);
+    setData(remainingTasks);
+
+    const totalTasks = tasks.length;
+    if (totalTasks > 0) {
+      const perTask = 100 / totalTasks;
+      const nextProgress = Math.min(
+        100,
+        Math.round((progress + perTask) * 100) / 100
+      );
+      setProgress(nextProgress);
+    }
+
+    if (remainingTasks.length < 1) {
+      await deleteTasks();
+    }
+  }
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+    <>
+      <StatusBar style="dark" />
+      <SafeAreaView style={styles.safeArea}>
+        <ImageBackground
+          source={require("@/assets/images/app-bg.jpg")}
+          style={styles.bgImage}
+        >
+          <ScrollView>
+            <Pressable onPress={handleTherapyButton}>
+              <View style={styles.therapistInputView}>
+                <Text style={styles.therapistInputText}>
+                  Chat with AI Therapist
+                </Text>
+                <View style={styles.circleView}>
+                  <Entypo
+                    style={styles.emoji}
+                    name="feather"
+                    size={18}
+                    color="green"
+                  />
+                </View>
+              </View>
+            </Pressable>
+            <View style={styles.accountIconView}>
+              <MaterialCommunityIcons
+                name="account"
+                size={28}
+                color="green"
+                style={styles.accountIcon}
+              />
+            </View>
+            <Text style={styles.textGN}>Good Morning,</Text>
+            <Text style={styles.textName}>Haseeb!</Text>
+            <View style={styles.progressContainer}>
+              <Text style={styles.progressAffirmationText}>
+                {getAffirmationFromProgress(progress)}
+              </Text>
+              <AnimatedCircularProgress
+                size={270}
+                width={15}
+                fill={progress}
+                tintColor="#8BAF8F"
+                style={styles.progress}
+              />
+            </View>
+            <View style={styles.taskContainer}>
+              <Text style={styles.planText}>Today&apos;s plan</Text>
+              <View style={styles.tasksList}>
+                {tasks &&
+                  tasks.map((task: TaskInterface, index: number) => (
+                    <Task
+                      onPress={() => handleTaskDone(task.title)}
+                      key={index}
+                      tag={task.tag}
+                      title={task.title}
+                    />
+                  ))}
+                {data && data?.length < 1 && (
+                  <Text style={styles.noDataText}>
+                    You&apos;re done for today! ☺️
+                  </Text>
+                )}
+              </View>
+            </View>
+          </ScrollView>
+        </ImageBackground>
+      </SafeAreaView>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  bgImage: {
+    flex: 1,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#b1d4be",
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+
+  therapistInputView: {
+    backgroundColor: "#ffffff70",
+    borderRadius: 99999,
+    marginHorizontal: 20,
+    borderWidth: 1,
+    borderColor: "#fff",
+    padding: 15,
+    flexDirection: "row",
+    width: 220,
+    marginTop: 20,
+    gap: 20,
+  },
+
+  therapistInputText: {
+    color: "#006633",
+    alignSelf: "center",
+  },
+
+  circleView: {
+    backgroundColor: "#ccffe570",
+    borderRadius: 999,
+    width: 28,
+    height: 28,
+    justifyContent: "center",
+    alignContent: "center",
+  },
+
+  emoji: {
+    alignSelf: "center",
+  },
+
+  accountIconView: {
+    position: "absolute",
+    right: 20,
+    top: 25,
+    width: 48,
+    height: 48,
+    borderWidth: 1,
+    borderColor: "#fff",
+    borderRadius: 9999,
+    backgroundColor: "#ffffff70",
+    justifyContent: "center",
+    alignContent: "center",
+  },
+
+  accountIcon: {
+    alignSelf: "center",
+  },
+
+  textGN: {
+    marginHorizontal: "auto",
+    fontSize: 34,
+    top: 50,
+    color: "#003319",
+    fontWeight: 300,
+  },
+
+  textName: {
+    marginHorizontal: "auto",
+    marginTop: 45,
+    color: "#003319",
+    fontWeight: 300,
+    fontSize: 34,
+  },
+
+  progressContainer: {
+    width: 270,
+    height: 270,
+    marginHorizontal: "auto",
+    top: 40,
+    borderRadius: 9999,
+    backgroundColor: "#ffffff70",
+    justifyContent: "center",
+  },
+
+  progressAffirmationText: {
+    alignSelf: "center",
+    textAlign: "center",
+    fontSize: 20,
+    marginHorizontal: 50,
+    color: "#003319",
+    fontWeight: 300,
+  },
+
+  progress: {
+    position: "absolute",
+    marginHorizontal: "auto",
+    alignSelf: "center",
+  },
+
+  taskContainer: {
+    flex: 1,
+    backgroundColor: "#ffffff",
+    opacity: 0.7,
+    marginHorizontal: 4,
+    borderRadius: 10,
+    marginTop: 80,
+    marginBottom: 115,
+  },
+
+  planText: {
+    color: "#003319",
+    marginHorizontal: 20,
+    marginTop: 20,
+    fontSize: 18,
+    fontWeight: 500,
+  },
+
+  tasksList: {
+    marginHorizontal: "auto",
+    marginBottom: 20,
+  },
+
+  noDataText: {
+    marginTop: 20,
   },
 });
