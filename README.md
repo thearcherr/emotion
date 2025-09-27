@@ -1,1 +1,1 @@
-#Emotion: AI-Powered Mental Health App (MVP)
+Emotion: AI-Powered Mental Health App (MVP)
